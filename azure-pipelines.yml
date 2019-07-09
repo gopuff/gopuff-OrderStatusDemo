@@ -1,0 +1,48 @@
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  BuildApi: false
+  BuildFrontend: false
+  GoodDeveloper: false
+
+steps:
+- task: PowerShell@2
+  inputs:
+    filePath: 'SetProjectVars.ps1'
+
+- script: echo $(BuildFrontend)
+  name: echovar
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install Node.js'
+  condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
+
+- script: |
+    cd Frontend
+    npm install && npm run build
+  displayName: 'npm install and build'
+  condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
+
+- task: AzureFileCopy@3
+  inputs:
+    SourcePath: 'Frontend/dist'
+    azureSubscription: 'Pay-As-You-Go-Sub'
+    Destination: 'AzureBlob'
+    storage: 'storenvw7kd6cbvlia'
+    ContainerName: '$web'
+  condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: 'Api/*.fsproj'
+    workingDirectory: 'Api'
+    configuration: 'Release'
+    versioningScheme: byBuildNumber
+  condition: and(succeeded(), eq(variables['BuildApi'], 'True'))

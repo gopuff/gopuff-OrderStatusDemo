@@ -1,0 +1,34 @@
+!/bin/bash
+
+# debug="--debug"
+
+echo "Enter the Resource Group name:"
+read resourceGroupName
+# resourceGroupName="aaron-test"
+id=`az account show --query "id" -otsv`
+echo "creating resource in [$resourceGroupName], subscription [$id]"
+createResourceResponse=$(az group create --location "eastus" --name $resourceGroupName --query "properties.provisioningState" -otsv)
+echo $createResourceResponse
+
+if [ "Succeeded" = $createResourceResponse ] 
+    then echo "Resource Created (if needed)"
+    else echo "Resource Failed to Create" && exit 1
+fi
+
+deployResponse=$(az group deployment create $debug  --resource-group $resourceGroupName --subscription $id --template-file "azuredeploy.json")
+
+echo "\n****\nAzure deploy done\n setup storage account for webserving"
+storageAccountName=$(echo $deployResponse | jq '.properties.outputs.storageAccountName.value' -r)
+
+az extension add --name storage-preview &&
+az storage blob service-properties update --account-name $storageAccountName --static-website --404-document "404.html" --index-document "index.html"
+
+echo "\n****\nBuild static site with FunctionApp URL "
+funcAppUrl=$(az functionapp config hostname list --resource-group $resourceGroupName --webapp-name $resourceGroupName-api --query '[0].name' -otsv)
+echo VUE_APP_API_BASE_URL=https://$funcAppUrl > ../Frontend/.env.production
+/usr/bin/npm run build --prefix ../Frontend
+
+# Deploy the dist directory and get the url
+az storage blob upload-batch -s "../Frontend/dist" -d "\$web" --account-name $storageAccountName
+siteUrl=$(az storage account show -n $storageAccountName -g $resourceGroupName --query "primaryEndpoints.web" --output tsv)
+explorer.exe $siteUrl
