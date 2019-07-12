@@ -1,5 +1,9 @@
 # Repo to talk about Azure and Design patterns
 
+![Order Demo Diagram](https://www.lucidchart.com/publicSegments/view/38ce5bf0-65bd-4b6f-a9f5-c7a98fd732e3/image.png "Order Demo")
+
+
+
 still very much a work in progress.
 
 Designed to show how to show customers real time updates based on a legacy system.
