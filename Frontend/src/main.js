@@ -7,14 +7,14 @@ Vue.config.productionTip = false
 const orderStore = {
   debug: true,
   state: {
-    order: {}
+    order: {id: 123, eta: "15 min", products: [{ name: "coke"}]}
   }
 }
-console.log(process.env)
+
 var vm = new Vue({
   router,
   render: h => h(App),
-  data: { order: orderStore.state }
+  data: orderStore.state
 })
 
 vm.$mount('#app')

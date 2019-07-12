@@ -1,6 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ $root.order }}</h1>
+    <h2>Hello, your order will arrive  {{ $root.order.eta }} </h2>
   </div>
 </template>
 
