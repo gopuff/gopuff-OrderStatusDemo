@@ -1,12 +1,28 @@
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
 trigger:
 - master
+- staging
 
-pr: none
+# Pull Request
+pr:
+- none
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
+
+  # Azure Resource Manager Service Principal Authentication
+  ConnectionName: "Pay-As-You-Go"
+
+  # The name of an existing storage account within the Azure subscription
+  ResourceManagerName: "storenvw7kd6cbvlia"
+
+  # The name of the Azure blob container to which the files will be copied
+  ResourceManagerContainerName: "$web"
+
   BuildApi: false
   BuildFrontend: false
   GoodDeveloper: false
@@ -19,25 +35,28 @@ steps:
 - script: echo $(BuildFrontend)
   name: echovar
 
-- task: NodeTool@0
+- task: Npm@1
   inputs:
-    versionSpec: '10.x'
-  displayName: 'Install Node.js'
+    command: 'install'
+    workingDir: './Frontend'
+  displayName: 'Perform npm install'
   condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
 
-- script: |
-    cd Frontend
-    npm install && npm run build
-  displayName: 'npm install and build'
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    workingDir: './Frontend'
+    customCommand: 'build'
+  displayName: 'Perform npm build'
   condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
 
 - task: AzureFileCopy@3
   inputs:
     SourcePath: 'Frontend/dist'
-    azureSubscription: 'Pay-As-You-Go-Sub'
+    azureSubscription: $(ConnectionName)
     Destination: 'AzureBlob'
-    storage: 'storenvw7kd6cbvlia'
-    ContainerName: '$web'
+    storage: $(ResourceManagerName)
+    ContainerName: $(ResourceManagerContainerName)
   condition: and(succeeded(), eq(variables['BuildFrontend'], 'True'))
 
 - task: DotNetCoreCLI@2
